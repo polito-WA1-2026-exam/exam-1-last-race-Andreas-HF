@@ -57,6 +57,17 @@ app.post("/api/sessions", passport.authenticate("local"), function(req, res) {
   return res.status(201).json(req.user);
 });
 
+app.get("/api/sessions/current", (req, res) => {
+  if (req.isAuthenticated()) return res.json(req.user);
+  return res.status(401).json({ error: "Not authenticated" });
+});
+
+app.delete("/api/sessions/current", (req, res) => {
+  req.logout((err) => {
+    if (err) return res.status(503).json({ error: "Logout failed" });
+    res.end();
+  });
+});
 
 // activate the server
 app.listen(port, () => {
