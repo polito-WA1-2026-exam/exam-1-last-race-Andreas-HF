@@ -1,122 +1,94 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import 'bootstrap/dist/css/bootstrap.min.css'
+
+import { useEffect, useState } from 'react'
+import { Container } from 'react-bootstrap'
+import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router'
+
+import Header from './components/Header'
+import { LoginForm, Logout } from './components/LoginForm'
+import UserContext from './contexts/UserContext'
+import { checkSession } from './api/auth'
+
+const ANON_USER = { id: undefined, username: undefined, name: undefined }
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [user, setUser] = useState(ANON_USER)
+  const navigate = useNavigate()
+
+  // Try to restore session on reload
+  useEffect(() => {
+    checkSession().then((u) => {
+      if (u) setUser({ id: u.id, username: u.username, name: u.name })
+    })
+  }, [])
+
+  // Called by both login and logout 
+  const doLogin = (u) => {
+    setUser({ id: u.id, username: u.username, name: u.name })
+    if (u.id) navigate('/play')
+  }
 
   return (
+    <UserContext.Provider value={user}>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Instructions />} />
+          <Route path="login" element={
+            user.id ? <Navigate to="/play" replace /> : <LoginForm doLogin={doLogin} />
+          } />
+          <Route path="logout" element={<Logout doLogin={doLogin} />} />
+          <Route path="play" element={<Protected user={user}><GamePage /></Protected>} />
+          <Route path="ranking" element={<Protected user={user}><RankingPage /></Protected>} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </UserContext.Provider>
+  )
+}
+
+function MainLayout() {
+  return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <Header />
+      <Container fluid="lg">
+        <Outlet />
+      </Container>
     </>
   )
+}
+
+function Protected({ user, children }) {
+  if (!user?.id) return <Navigate to="/login" replace />
+  return children
+}
+
+
+// Placeholder views
+
+function Instructions() {
+  return (
+    <>
+      <h2>How to play</h2>
+      <p>
+        Try to find your way from one station to another using the metro lines. Try to get as many coins as possible while doing so! 
+      </p>
+      <p className="text-muted">
+        Log in to view the network map and start a game.
+      </p>
+    </>
+  )
+}
+
+function GamePage() {
+  return <h2>Play</h2>
+}
+
+function RankingPage() {
+  return <h2>Ranking</h2>
+}
+
+function NotFound() {
+  return <h2>Page not found</h2>
 }
 
 export default App
