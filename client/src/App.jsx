@@ -1,11 +1,12 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Container } from 'react-bootstrap'
 import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router'
 
 import Header from './components/Header'
 import { LoginForm, Logout } from './components/LoginForm'
+import GameView from './components/GameView'
 import UserContext from './contexts/UserContext'
 import { checkSession } from './api/auth'
 
@@ -23,10 +24,10 @@ function App() {
   }, [])
 
   // Called by both login and logout 
-  const doLogin = (u) => {
+  const doLogin = useCallback((u) => {
     setUser({ id: u.id, username: u.username, name: u.name })
     if (u.id) navigate('/play')
-  }
+  }, [navigate])
 
   return (
     <UserContext.Provider value={user}>
@@ -80,7 +81,7 @@ function Instructions() {
 }
 
 function GamePage() {
-  return <h2>Play</h2>
+  return <GameView />
 }
 
 function RankingPage() {

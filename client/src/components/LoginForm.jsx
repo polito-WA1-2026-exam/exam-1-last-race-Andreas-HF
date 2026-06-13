@@ -48,15 +48,15 @@ function LoginForm(props) {
 
 }
 
-function Logout(props) {
+function Logout({ doLogin }) {
     const navigate = useNavigate()
 
     useEffect(() => {
         doLogout().then(() => {
-            props.doLogin({ id: undefined, email: undefined, name: undefined })
+            doLogin({ id: undefined, email: undefined, name: undefined })
             navigate('/')
         })
-    }, [])
+    }, [doLogin, navigate])
 
     return "Logging out..."
 
