@@ -3,10 +3,12 @@ import express from "express";
 import morgan from "morgan";
 import cors from "cors";
 import { getUser } from "./dao-users.js"
+import { getFullNetwork, getStations, getSegments } from "./dao-network.js";
 
 import passport from "passport";
 import LocalStrategy from "passport-local";
 import session from "express-session";
+import { check, validationResult } from "express-validator";
 
 // init express
 const app = new express();
@@ -47,13 +49,25 @@ passport.deserializeUser(function (user, cb) {
   return cb(null, user);
 });
 
+const isLoggedIn = (req, res, next) => {
+  if (req.isAuthenticated()) return next();
+  return res.status(401).json({ error: "Not authorized" });
+};
+
 // Routes
 
 app.get("/api/health", (req, res) => {
   return res.status(200).send("UP")
 });
 
-app.post("/api/sessions", passport.authenticate("local"), function(req, res) {
+app.post("/api/sessions", [
+  check("username").notEmpty(),
+  check("password").notEmpty(),
+], (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+  return next();
+}, passport.authenticate("local"), function(req, res) {
   return res.status(201).json(req.user);
 });
 
@@ -66,6 +80,33 @@ app.delete("/api/sessions/current", (req, res) => {
   req.logout((err) => {
     if (err) return res.status(503).json({ error: "Logout failed" });
     res.end();
+  });
+});
+
+app.get("/api/network/full", isLoggedIn, (req, res) => {
+  getFullNetwork().then((network) => {
+    res.json(network);
+  }).catch((err) => {
+    console.error(err);
+    res.status(503).json({ error: "Failed to fetch network data" });
+  });
+});
+
+app.get("/api/network/stations", isLoggedIn, (req, res) => {
+  getStations().then((stations) => {
+    res.json(stations);
+  }).catch((err) => {
+    console.error(err);
+    res.status(503).json({ error: "Failed to fetch stations" });
+  });
+});
+
+app.get("/api/network/segments", isLoggedIn, (req, res) => {
+  getSegments().then((segments) => {
+    res.json(segments);
+  }).catch((err) => {
+    console.error(err);
+    res.status(503).json({ error: "Failed to fetch segments" });
   });
 });
 
