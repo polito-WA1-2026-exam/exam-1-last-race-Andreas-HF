@@ -4,11 +4,14 @@ import morgan from "morgan";
 import cors from "cors";
 import { getUser } from "./dao-users.js"
 import { getFullNetwork, getStations, getSegments } from "./dao-network.js";
+import { createGame, getGame, listEvents, finalizeGame } from "./dao-games.js";
+import { buildNetworkIndex, pickEndpoints, validateRoute, executeRoute } from "./game-logic.js";
 
 import passport from "passport";
 import LocalStrategy from "passport-local";
 import session from "express-session";
-import { check, validationResult } from "express-validator";
+import { check, body, param, validationResult } from "express-validator";
+import dayjs from "dayjs";
 
 // init express
 const app = new express();
@@ -53,6 +56,17 @@ const isLoggedIn = (req, res, next) => {
   if (req.isAuthenticated()) return next();
   return res.status(401).json({ error: "Not authorized" });
 };
+
+// Cache at boot, since this data should not change when the server is running
+const networkIndex = buildNetworkIndex(await getFullNetwork());
+const eventsCache = await listEvents();
+const stationById = new Map(networkIndex.stations.map(s => [s.id, s]));
+const segmentList = [...networkIndex.linesBySegment.keys()]
+  .map(k => { const [a, b] = k.split('-').map(Number); return { id: k, a, b }; })
+  .sort((x, y) => x.a - y.a || x.b - y.b);
+
+const GAME_DURATION_SECONDS = 90;
+const TIMER_GRACE_SECONDS = 5;
 
 // Routes
 
@@ -109,6 +123,81 @@ app.get("/api/network/segments", isLoggedIn, (req, res) => {
     res.status(503).json({ error: "Failed to fetch segments" });
   });
 });
+
+app.post("/api/games", isLoggedIn, async (req, res) => {
+  try {
+    const { startId, destId } = pickEndpoints(networkIndex);
+    const startedAt = dayjs().toISOString();
+    const gameId = await createGame(req.user.id, startId, destId, startedAt);
+    res.status(201).json({
+      gameId,
+      startStation: stationById.get(startId),
+      destStation: stationById.get(destId),
+      segments: segmentList,
+      startedAt,
+      durationSeconds: GAME_DURATION_SECONDS,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(503).json({ error: "Failed to start game" });
+  }
+});
+
+app.post("/api/games/:id/submit",
+  isLoggedIn,
+  [
+    param("id").isInt(),
+    body("route").isArray(),
+    body("route.*.a").isInt(),
+    body("route.*.b").isInt(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const gameId = parseInt(req.params.id, 10);
+    try {
+      const game = await getGame(gameId);
+      if (!game) return res.status(404).json({ error: "Game not found" });
+      if (game.user_id !== req.user.id) return res.status(403).json({ error: "Not your game" });
+      if (game.status !== 'planning') return res.status(409).json({ error: "Game already submitted" });
+
+      const submittedAt = dayjs().toISOString();
+      const elapsed = dayjs(submittedAt).diff(game.started_at, 'second');
+      const timedOut = elapsed > GAME_DURATION_SECONDS + TIMER_GRACE_SECONDS;
+
+      const route = req.body.route.map(s => ({ a: Number(s.a), b: Number(s.b) }));
+      const validation = timedOut
+        ? { ok: false, reason: 'Time expired' }
+        : validateRoute(networkIndex, game.start_id, game.dest_id, route);
+
+      let steps = [];
+      let finalScore = 0;
+      if (validation.ok) {
+        const result = executeRoute(route, eventsCache);
+        steps = result.steps;
+        finalScore = result.finalScore;
+      }
+
+      await finalizeGame(gameId, submittedAt, finalScore, steps);
+
+      return res.json({
+        valid: validation.ok,
+        ...(validation.ok ? {} : { reason: validation.reason }),
+        steps: steps.map(s => ({
+          from: s.fromId,
+          to: s.toId,
+          description: s.description,
+          effect: s.effect,
+          coinAfter: s.coinAfter,
+        })),
+        finalScore,
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(503).json({ error: "Failed to submit game" });
+    }
+  });
 
 // activate the server
 app.listen(port, () => {
