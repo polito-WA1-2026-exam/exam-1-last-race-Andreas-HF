@@ -1,37 +1,30 @@
 import { Button, Badge, Stack } from "react-bootstrap"
 import SegmentList from "./SegmentList"
 
-// Builds the route from segments. Connectivity (a walk: each segment continues
-// from the previous one's end) is enforced here because it is deducible from the
-// segments alone. Line-change rules are NOT checked client-side — the player
-// must remember line affiliations from Setup; the server validates them.
-
-// Displays the current route as a list of station names, with buttons to undo/reset.
-// Also enforces connectivity by only allowing segments that continue from the current route tail.
+// Displays the current route as the ordered list of segments the player picked.
+// Any segment can be added in any order — the server decides if the route is valid.
 function RouteBuilder({ start, dest, segments, route, nameOf, onAdd, onUndo, onReset, onSubmit, submitting }) {
-  const tailId = route.length ? route[route.length - 1].b : start.id
-  const complete = tailId === dest.id
-
   return (
     <Stack gap={3}>
       <div>
-        <div className="mb-1 text-muted">Your route</div>
-        <div className="d-flex flex-wrap align-items-center gap-2">
-          <Badge bg="success">{start.name}</Badge>
-          {route.map((s, i) => (
-            <span key={`${s.id}-${i}`} className="d-flex align-items-center gap-2">
-              <span>→</span>
-              <Badge bg={s.b === dest.id ? "danger" : "primary"}>{nameOf(s.b)}</Badge>
-            </span>
-          ))}
-          {!complete && (
-            <>
-              <span>→</span>
-              <Badge bg="light" text="dark">{dest.name}?</Badge>
-            </>
-          )}
+        <div className="mb-1 text-muted">
+          From <Badge bg="success">{start.name}</Badge> to <Badge bg="danger">{dest.name}</Badge>
         </div>
-        {complete && <div className="text-success mt-1">Route reaches the destination.</div>}
+        <div className="mb-1 text-muted">Your route</div>
+        {route.length === 0 ? (
+          <div className="text-muted fst-italic">No segments selected yet.</div>
+        ) : (
+          <Stack gap={1}>
+            {route.map((s, i) => (
+              <div key={`${s.id}-${i}`} className="d-flex align-items-center gap-2">
+                <span className="text-muted">{i + 1}.</span>
+                <Badge bg="light" text="dark">{nameOf(s.a)}</Badge>
+                <span>→</span>
+                <Badge bg="light" text="dark">{nameOf(s.b)}</Badge>
+              </div>
+            ))}
+          </Stack>
+        )}
       </div>
 
       <div className="d-flex gap-2">
@@ -46,7 +39,7 @@ function RouteBuilder({ start, dest, segments, route, nameOf, onAdd, onUndo, onR
         </Button>
       </div>
 
-      <SegmentList segments={segments} route={route} tailId={tailId} nameOf={nameOf} onAdd={onAdd} />
+      <SegmentList segments={segments} route={route} nameOf={nameOf} onAdd={onAdd} />
     </Stack>
   )
 }
