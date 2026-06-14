@@ -53,4 +53,11 @@ async function submitRoute(gameId, route) {
   return res.json()
 }
 
-export { getNetworkFull, getStations, getSegmentList, startGame, submitRoute }
+// Best score per user, descending. Used in the Ranking page
+async function getRanking() {
+  const res = await fetch(`${BASE}/ranking`, { credentials: "include" })
+  if (!res.ok) throw new Error(await readError(res, "Failed to load ranking"))
+  return res.json()
+}
+
+export { getNetworkFull, getStations, getSegmentList, startGame, submitRoute, getRanking }
