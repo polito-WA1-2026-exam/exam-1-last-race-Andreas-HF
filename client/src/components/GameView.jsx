@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Alert, Spinner } from "react-bootstrap"
+import { useCallback, useMemo, useRef, useState } from "react"
+import { Alert } from "react-bootstrap"
 
-import { getNetworkFull, startGame, submitRoute } from "../api/api"
+import { getSegmentList, getStations, startGame, submitRoute } from "../api/api"
 import SetupView from "./SetupView"
 import PlanningView from "./PlanningView"
 import ExecutionView from "./ExecutionView"
@@ -10,34 +10,34 @@ import ResultView from "./ResultView"
 // Drives the main game flow and state:
 //   setup → planning → executing → result → (Play again) → setup
 function GameView() {
-  const [network, setNetwork] = useState(null) // {stations, lines}
   const [phase, setPhase] = useState("setup") // setup | planning | executing | result
-  const [game, setGame] = useState(null) 
-  const [route, setRoute] = useState([]) 
+  const [game, setGame] = useState(null)
+  const [stations, setStations] = useState([]) // lean stations: {id, name, x, y}
+  const [segments, setSegments] = useState([]) // bare pairs: {id, a, b}
+  const [route, setRoute] = useState([])
   const [execution, setExecution] = useState(null)
   const [starting, setStarting] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const submitted = useRef(false) // to avoid double submissions 
-
-  // Load the full network once for the Setup map.
-  useEffect(() => {
-    getNetworkFull()
-      .then(setNetwork)
-      .catch((e) => setError(e.message))
-  }, [])
+  const submitted = useRef(false) // to avoid double submissions
 
   const nameById = useMemo(() => {
-    const m = new Map((network?.stations ?? []).map((s) => [s.id, s.name]))
+    const m = new Map(stations.map((s) => [s.id, s.name]))
     return (id) => m.get(id) ?? `Station #${id}`
-  }, [network])
+  }, [stations])
 
   const beginGame = async () => {
     setError("")
     setStarting(true)
     try {
-      const g = await startGame()
+      const [g, leanStations, segmentList] = await Promise.all([
+        startGame(),
+        getStations(),
+        getSegmentList(),
+      ])
       setGame(g)
+      setStations(leanStations)
+      setSegments(segmentList)
       setRoute([])
       submitted.current = false
       setPhase("planning")
@@ -79,13 +79,12 @@ function GameView() {
 
   const playAgain = () => {
     setGame(null)
+    setStations([])
+    setSegments([])
     setRoute([])
     setExecution(null)
     setPhase("setup")
   }
-
-  if (error && !network) return <Alert variant="danger">{error}</Alert>
-  if (!network) return <Spinner animation="border" className="mt-4" />
 
   return (
     <div className="my-3">
@@ -95,11 +94,12 @@ function GameView() {
         </Alert>
       )}
 
-      {phase === "setup" && <SetupView network={network} onStart={beginGame} starting={starting} />}
+      {phase === "setup" && <SetupView onStart={beginGame} starting={starting} />}
 
       {phase === "planning" && game && (
         <PlanningView
-          network={network}
+          stations={stations}
+          segments={segments}
           game={game}
           route={route}
           nameOf={nameById}

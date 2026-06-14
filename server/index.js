@@ -61,9 +61,6 @@ const isLoggedIn = (req, res, next) => {
 const networkIndex = buildNetworkIndex(await getFullNetwork());
 const eventsCache = await listEvents();
 const stationById = new Map(networkIndex.stations.map(s => [s.id, s]));
-const segmentList = [...networkIndex.linesBySegment.keys()]
-  .map(k => { const [a, b] = k.split('-').map(Number); return { id: k, a, b }; })
-  .sort((x, y) => x.a - y.a || x.b - y.b);
 
 const GAME_DURATION_SECONDS = 90;
 const TIMER_GRACE_SECONDS = 5;
@@ -133,7 +130,6 @@ app.post("/api/games", isLoggedIn, async (req, res) => {
       gameId,
       startStation: stationById.get(startId),
       destStation: stationById.get(destId),
-      segments: segmentList,
       startedAt,
       durationSeconds: GAME_DURATION_SECONDS,
     });

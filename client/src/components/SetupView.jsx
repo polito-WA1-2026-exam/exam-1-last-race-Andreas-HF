@@ -1,9 +1,23 @@
-import { Button, Stack } from "react-bootstrap"
+import { useEffect, useState } from "react"
+import { Alert, Button, Spinner, Stack } from "react-bootstrap"
 import NetworkMap from "./NetworkMap"
+import { getNetworkFull } from "../api/api"
 
 // Setup view: the player studies the full map (stations + lines) before starting
 // Once they press Start, the server assigns start/dest and the 90s clock begins
-function SetupView({ network, onStart, starting }) {
+function SetupView({ onStart, starting }) {
+  const [network, setNetwork] = useState(null)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    getNetworkFull()
+      .then(setNetwork)
+      .catch((e) => setError(e.message))
+  }, [])
+
+  if (error) return <Alert variant="danger">{error}</Alert>
+  if (!network) return <Spinner animation="border" className="mt-4" />
+
   return (
     <Stack gap={3}>
       <div className="d-flex justify-content-between align-items-center">
