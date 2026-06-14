@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Alert, Button, Card, ListGroup, Spinner, Stack } from "react-bootstrap"
+import { Alert, Spinner } from "react-bootstrap"
 
 import { getNetworkFull, startGame, submitRoute } from "../api/api"
 import SetupView from "./SetupView"
 import PlanningView from "./PlanningView"
+import ExecutionView from "./ExecutionView"
+import ResultView from "./ResultView"
 
 // Drives the main game flow and state:
 //   setup → planning → executing → result → (Play again) → setup
@@ -109,74 +111,14 @@ function GameView() {
         />
       )}
 
-      {phase === "executing" && execution && (
+      {(phase === "executing" || phase === "result") && execution && execution.steps.length > 0 && (
         <ExecutionView execution={execution} nameOf={nameById} onDone={() => setPhase("result")} />
       )}
 
       {phase === "result" && execution && (
-        <ResultView execution={execution} nameOf={nameById} onPlayAgain={playAgain} />
+        <ResultView execution={execution} onPlayAgain={playAgain} />
       )}
     </div>
-  )
-}
-
-// Minimal execution view
-// TODO: Animate and polish
-function ExecutionView({ execution, nameOf, onDone }) {
-  const [shown, setShown] = useState(0)
-  const onDoneRef = useRef(onDone)
-
-  useEffect(() => {
-    onDoneRef.current = onDone
-  })
-
-  useEffect(() => {
-    if (shown >= execution.steps.length) {
-      const t = setTimeout(() => onDoneRef.current(), 800)
-      return () => clearTimeout(t)
-    }
-    const t = setTimeout(() => setShown((n) => n + 1), 1200)
-    return () => clearTimeout(t)
-  }, [shown, execution.steps.length])
-
-  return (
-    <Stack gap={3}>
-      <h2>Execution</h2>
-      <ListGroup>
-        {execution.steps.slice(0, shown).map((s, i) => (
-          <ListGroup.Item key={i} className="d-flex justify-content-between align-items-center">
-            <span>
-              {nameOf(s.from)} → {nameOf(s.to)}: {s.description}
-            </span>
-            <span>
-              <strong className={s.effect < 0 ? "text-danger" : s.effect > 0 ? "text-success" : ""}>
-                {s.effect > 0 ? `+${s.effect}` : s.effect}
-              </strong>{" "}
-              → {s.coinAfter} coins
-            </span>
-          </ListGroup.Item>
-        ))}
-      </ListGroup>
-    </Stack>
-  )
-}
-
-// Minimal result view
-// TODO: Polish 
-function ResultView({ execution, onPlayAgain }) {
-  return (
-    <Card body className="text-center my-4">
-      <h2>Result</h2>
-      {!execution.valid && (
-        <p className="text-danger">
-          Route invalid{execution.reason ? `: ${execution.reason}` : ""}. You lost all your coins.
-        </p>
-      )}
-      <p className="display-4">{execution.finalScore} coins</p>
-      <div>
-        <Button onClick={onPlayAgain}>Play again</Button>
-      </div>
-    </Card>
   )
 }
 
