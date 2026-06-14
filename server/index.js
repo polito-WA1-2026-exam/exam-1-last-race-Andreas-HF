@@ -67,10 +67,6 @@ const TIMER_GRACE_SECONDS = 5;
 
 // Routes
 
-app.get("/api/health", (req, res) => {
-  return res.status(200).send("UP")
-});
-
 app.post("/api/sessions", [
   check("username").notEmpty(),
   check("password").notEmpty(),
