@@ -4,8 +4,8 @@ import CountdownTimer from "./CountdownTimer"
 import RouteBuilder from "./RouteBuilder"
 
 // Network map with only stations and the start/dest highlighted as well as a timer
-function PlanningView({ network, game, route, nameOf, onAdd, onUndo, onReset, onSubmit, submitting }) {
-  const { startStation: start, destStation: dest, segments, durationSeconds } = game
+function PlanningView({ stations, segments, game, route, nameOf, onAdd, onUndo, onReset, onSubmit, submitting }) {
+  const { startStation: start, destStation: dest, durationSeconds } = game
 
   return (
     <>
@@ -18,7 +18,7 @@ function PlanningView({ network, game, route, nameOf, onAdd, onUndo, onReset, on
       </div>
       <Row>
         <Col md={7} className="mb-3">
-          <NetworkMap stations={network.stations} startId={start.id} destId={dest.id} />
+          <NetworkMap stations={stations} startId={start.id} destId={dest.id} />
         </Col>
         <Col md={5}>
           <Card body>
