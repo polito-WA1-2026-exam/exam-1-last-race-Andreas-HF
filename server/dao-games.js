@@ -66,3 +66,17 @@ export function finalizeGame(gameId, submittedAt, finalScore, steps) {
     });
   });
 }
+
+export function getRanking() {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT u.name AS name, MAX(g.final_score) AS bestScore
+       FROM games g JOIN users u ON u.id = g.user_id
+       WHERE g.status = 'done'
+       GROUP BY u.id
+       ORDER BY bestScore DESC, u.name ASC`,
+      [],
+      (err, rows) => err ? reject(err) : resolve(rows));
+  });
+}
+

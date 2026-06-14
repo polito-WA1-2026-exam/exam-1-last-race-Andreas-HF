@@ -7,6 +7,7 @@ import { Navigate, Outlet, Route, Routes, useNavigate } from 'react-router'
 import Header from './components/Header'
 import { LoginForm, Logout } from './components/LoginForm'
 import GameView from './components/GameView'
+import RankingView from './components/RankingView'
 import UserContext from './contexts/UserContext'
 import { checkSession } from './api/auth'
 
@@ -85,7 +86,7 @@ function GamePage() {
 }
 
 function RankingPage() {
-  return <h2>Ranking</h2>
+  return <RankingView />
 }
 
 function NotFound() {

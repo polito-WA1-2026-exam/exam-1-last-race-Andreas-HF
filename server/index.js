@@ -4,7 +4,7 @@ import morgan from "morgan";
 import cors from "cors";
 import { getUser } from "./dao-users.js"
 import { getFullNetwork, getStations, getSegments } from "./dao-network.js";
-import { createGame, getGame, listEvents, finalizeGame } from "./dao-games.js";
+import { createGame, getGame, listEvents, finalizeGame, getRanking } from "./dao-games.js";
 import { buildNetworkIndex, pickEndpoints, validateRoute, executeRoute } from "./game-logic.js";
 
 import passport from "passport";
@@ -198,6 +198,15 @@ app.post("/api/games/:id/submit",
       return res.status(503).json({ error: "Failed to submit game" });
     }
   });
+
+app.get("/api/ranking", isLoggedIn, (req, res) => {
+  getRanking().then((ranking) => {
+    res.json(ranking);
+  }).catch((err) => {
+    console.error(err);
+    res.status(503).json({ error: "Failed to fetch ranking" });
+  });
+});
 
 // activate the server
 app.listen(port, () => {
