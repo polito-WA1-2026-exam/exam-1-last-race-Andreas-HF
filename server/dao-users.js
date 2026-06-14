@@ -1,9 +1,5 @@
-import sqlite from "sqlite3";
 import crypto from "crypto";
-
-const db = new sqlite.Database("lastrace.sqlite", (err) => {
-  if (err) throw err;
-});
+import { db } from './db.js';
 
 export const getUser = (username, password) => {
   return new Promise((resolve, reject) => {
