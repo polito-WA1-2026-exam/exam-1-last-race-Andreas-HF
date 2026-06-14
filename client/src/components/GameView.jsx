@@ -50,10 +50,12 @@ function GameView() {
 
   const addSegment = (seg) => {
     setRoute((prev) => {
+      // The player may pick any segment in any order; the server validates the route.
+      // A segment is undirected, so we orient it correctly. 
+      // If it does not connect to the tail, we do not orient it since the server will reject anyway
       const tail = prev.length ? prev[prev.length - 1].b : game.startStation.id
-      if (seg.a === tail) return [...prev, { id: seg.id, a: seg.a, b: seg.b }]
       if (seg.b === tail) return [...prev, { id: seg.id, a: seg.b, b: seg.a }]
-      return prev // should not be reachable from the UI
+      return [...prev, { id: seg.id, a: seg.a, b: seg.b }]
     })
   }
 
