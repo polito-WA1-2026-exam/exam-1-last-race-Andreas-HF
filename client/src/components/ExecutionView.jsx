@@ -25,8 +25,8 @@ function ExecutionView({ execution, nameOf, onDone }) {
     <Stack gap={3}>
       <h2>Execution</h2>
       <ListGroup>
-        {execution.steps.slice(0, shown).map((s, i) => (
-          <ListGroup.Item key={i} className="d-flex justify-content-between align-items-center">
+        {execution.steps.slice(0, shown).map((s) => (
+          <ListGroup.Item key={s.stepIndex} className="d-flex justify-content-between align-items-center">
             <span>
               {nameOf(s.from)} → {nameOf(s.to)}: {s.description}
             </span>

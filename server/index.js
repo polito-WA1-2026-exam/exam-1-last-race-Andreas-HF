@@ -185,6 +185,7 @@ app.post("/api/games/:id/submit",
         valid: validation.ok,
         ...(validation.ok ? {} : { reason: validation.reason }),
         steps: steps.map(s => ({
+          stepIndex: s.stepIndex,
           from: s.fromId,
           to: s.toId,
           description: s.description,
